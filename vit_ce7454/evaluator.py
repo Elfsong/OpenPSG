@@ -17,8 +17,8 @@ class Evaluator:
         with torch.no_grad():
             for batch in data_loader:
                 data = batch['data'].cuda()
-                logits = self.net(data)
-                prob = torch.sigmoid(logits)
+                output = self.net(data)
+                prob = torch.sigmoid(output.logits)
                 target = batch['soft_label'].cuda()
                 loss = F.binary_cross_entropy(prob, target, reduction='sum')
                 loss_avg += float(loss.data)
@@ -58,8 +58,8 @@ class Evaluator:
         with torch.no_grad():
             for batch in data_loader:
                 data = batch['data'].cuda()
-                logits = self.net(data)
-                prob = torch.sigmoid(logits)
+                output = self.net(data)
+                prob = torch.sigmoid(output.logits)
                 pred = torch.topk(prob.data, self.k)[1]
                 pred = pred.cpu().detach().tolist()
                 pred_list.extend(pred)

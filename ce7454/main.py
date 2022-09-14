@@ -2,22 +2,38 @@ import argparse
 import os
 import time
 
+import wandb
 import torch
 from dataset import PSGClsDataset
 from evaluator import Evaluator
 from torch.utils.data import DataLoader
-from torchvision.models import resnet50
+from torchvision.models import resnet50, resnet101, swin_b
 from trainer import BaseTrainer
 
+# CUDA Configuration
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_name', type=str, default='res50')
-parser.add_argument('--epoch', type=int, default=36)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--model_name', type=str, default='swin_b')
+parser.add_argument('--optimiser', type=str, default='SGD')
+parser.add_argument('--epoch', type=int, default=64)
+parser.add_argument('--lr', type=float, default=1e-3)
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--momentum', type=float, default=0.9)
 parser.add_argument('--weight_decay', type=float, default=0.0005)
 
 args = parser.parse_args()
+
+wandb.init(project="ce7454", entity="elfsong")
+wandb.config = {
+    "model_name": args.model_name,
+    "optimiser": args.optimiser,
+    "epochs": args.epoch,
+    "learning_rate": args.lr,
+    "batch_size": args.batch_size,
+    "momentum": args.momentum,
+    "weight_decay": args.weight_decay
+}
 
 savename = f'{args.model_name}_e{args.epoch}_lr{args.lr}_bs{args.batch_size}_m{args.momentum}_wd{args.weight_decay}'
 os.makedirs('./checkpoints', exist_ok=True)
@@ -44,8 +60,13 @@ test_dataloader = DataLoader(test_dataset,
 print('Data Loaded...', flush=True)
 
 # loading model
-model = resnet50(pretrained=True)
-model.fc = torch.nn.Linear(2048, 56)
+model = resnet50()
+# model.fc = torch.nn.Linear(2048, 56)
+model.fc = torch.nn.Sequential(
+                # torch.nn.BatchNorm1d(2048),
+                torch.nn.Linear(2048, 56),
+            )
+
 model.cuda()
 print('Model Loaded...', flush=True)
 
@@ -73,6 +94,14 @@ for epoch in range(0, args.epoch):
                 train_metrics['train_loss'], val_metrics['test_loss'],
                 100.0 * val_metrics['mean_recall']),
         flush=True)
+
+    wandb.log({
+        "epoch": epoch + 1,
+        "time": int(time.time() - begin_epoch),
+        "train loss": train_metrics['train_loss'],
+        "test loss": val_metrics['test_loss'],
+        "mR": 100.0 * val_metrics['mean_recall']
+    })
 
     # save model
     if val_metrics['mean_recall'] >= best_val_recall:

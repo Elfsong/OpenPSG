@@ -1,3 +1,4 @@
+import string
 import numpy as np
 import torch
 import torch.nn as nn
@@ -18,17 +19,27 @@ class BaseTrainer:
                  learning_rate: float = 0.001,
                  momentum: float = 0.9,
                  weight_decay: float = 0.0005,
-                 epochs: int = 100) -> None:
+                 epochs: int = 100,
+                 optimizer: string = "SGD") -> None:
         self.net = net
         self.train_loader = train_loader
 
-        self.optimizer = torch.optim.SGD(
-            net.parameters(),
-            learning_rate,
-            momentum=momentum,
-            weight_decay=weight_decay,
-            nesterov=True,
-        )
+        if optimizer == "SGD":
+            self.optimizer = torch.optim.SGD(
+                net.parameters(),
+                learning_rate,
+                momentum=momentum,
+                weight_decay=weight_decay,
+                nesterov=True,
+            )
+        elif optimizer == "AdamW":
+            self.optimizer = torch.optim.AdamW(
+                net.parameters(),
+                lr=learning_rate,
+                weight_decay=weight_decay
+            )
+        else:
+            raise("Unknown optimizer!")
 
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
             self.optimizer,
@@ -53,8 +64,8 @@ class BaseTrainer:
             target = batch['soft_label'].cuda()
             
             # forward
-            logits = self.net(data)
-            loss = F.binary_cross_entropy_with_logits(logits, target, reduction='sum')
+            output = self.net(data)
+            loss = F.binary_cross_entropy_with_logits(output.logits, target, reduction='sum')
 
             # backward
             self.optimizer.zero_grad()

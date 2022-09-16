@@ -28,12 +28,15 @@ parser.add_argument('--model_name', type=str, default='google/vit-base-patch16-2
 parser.add_argument('--optimiser', type=str, default='AdamW')
 parser.add_argument('--epoch', type=int, default=64)
 parser.add_argument('--lr', type=float, default=1e-4)
-parser.add_argument('--batch_size', type=int, default=8)
+parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--momentum', type=float, default=0.9)
-parser.add_argument('--weight_decay', type=float, default=0.05)
+parser.add_argument('--weight_decay', type=float, default=0.005)
+parser.add_argument('--h_dropout', type=float, default=0.1)
+parser.add_argument('--a_dropout', type=float, default=0.1)
 parser.add_argument('--num_labels', type=int, default=56)
 parser.add_argument('--cuda', type=int, default=0)
 parser.add_argument('--input_size', type=int, default=224)
+parser.add_argument('--note', type=str, default="")
 args = parser.parse_args()
 
 # CUDA Configuration
@@ -67,6 +70,8 @@ model = AutoModelForImageClassification.from_pretrained(
     id2label = {str(i): c for i, c in enumerate(labels)},
     label2id = {c: str(i) for i, c in enumerate(labels)},
     ignore_mismatched_sizes=True,
+    hidden_dropout_prob = args.h_dropout,
+    attention_probs_dropout_prob = args.a_dropout,
 )
 model.cuda()
 print('[+] Model Loaded', flush=True)
@@ -109,13 +114,25 @@ for epoch in range(args.epoch):
         "time": int(time.time() - begin_epoch),
         "train loss": train_metrics['train_loss'],
         "test loss": val_metrics['test_loss'],
-        "mR": 100.0 * val_metrics['mean_recall']
+        "mR": 100.0 * val_metrics['mean_recall'],
+        "best_mR": 100.0 * best_val_recall,
     })
 
     # Save Model
     if val_metrics['mean_recall'] >= best_val_recall:
-        torch.save(model.state_dict(), f'./checkpoints/{savename}_best.ckpt')
+        torch.save(model.state_dict(), f'./checkpoints/{savename}_best_{val_metrics["mean_recall"]}.ckpt')
         best_val_recall = val_metrics['mean_recall']
+        print('[+] Model Saved!', flush=True)
+
+    # Evaluation submission generation
+    result = evaluator.submit(test_dataloader)
+    with open(f'results/{savename}_{val_metrics["mean_recall"]}_epoch_result.txt', 'w') as writer:
+        for label_list in result:
+            a = [str(x) for x in label_list]
+            save_str = ' '.join(a)
+            writer.writelines(save_str + '\n')
+    print('[+] Epoch Result Saved!', flush=True)
+
 print('[+] Training Completed...', flush=True)
 
 # Evaluation

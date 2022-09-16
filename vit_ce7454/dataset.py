@@ -27,6 +27,7 @@ def get_transforms(stage: str, input_size: int):
             Convert('RGB'),
             trn.Resize((input_size, input_size)),
             trn.RandomHorizontalFlip(),
+            trn.ColorJitter(brightness=0.25, contrast=0.25, saturation=0.25, hue=0.1),
             trn.RandomCrop((input_size, input_size), padding=4),
             trn.ToTensor(),
             trn.Normalize(mean, std),
@@ -41,9 +42,9 @@ def get_transforms(stage: str, input_size: int):
         ])
 
 class PSGClsDataset(Dataset):
-    def __init__(self, stage, root='./data/coco/', num_classes=56, input_size=224):
+    def __init__(self, stage, root='./data/coco/', label_path="./data/psg/psg_cls_basic.json", num_classes=56, input_size=224):
         super(PSGClsDataset, self).__init__()
-        with open('./data/psg/psg_cls_basic.json') as f:
+        with open(label_path) as f:
             dataset = json.load(f)
 
         self.imglist = [

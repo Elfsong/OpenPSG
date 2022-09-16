@@ -153,3 +153,6 @@ ce7454.zip
 ce7454_tools/
 ce7454/checkpoints
 ce7454/results
+vit_ce7454/checkpoints/*
+vit_ce7454/results/*
+food_test/

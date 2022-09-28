@@ -156,3 +156,6 @@ ce7454/results
 vit_ce7454/checkpoints/*
 vit_ce7454/results/*
 food_test/
+clip_ce7454/results/*
+clip_ce7454_v2/results/*
+vit_ce7454_v2/checkpoints/*

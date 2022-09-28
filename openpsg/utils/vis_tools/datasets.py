@@ -4,7 +4,7 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from .preprocess import load_json
 from .viz import get_colormap
 
-data_dir = Path('data')
+data_dir = Path('/home/mingzhe/Projects/OpenPSG/ce7454/data')
 
 # COCO
 coco_dir = data_dir / 'coco'
